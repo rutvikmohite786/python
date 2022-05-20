@@ -1,20 +1,17 @@
-# Create your views here.
- 
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
-from rest_framework.views import APIView
+from rest_framework import generics, permissions
 from rest_framework.response import Response
-from rest_framework import status
-from .models import UserData
-from .serializers import booksSerializer
- 
- 
-class booklist(APIView):
- 
-    def get(self,request):
-        book1 = UserData.objects.all()
-        serializer = booksSerializer(book1, many= True)
-        return Response(serializer.data,status=status.HTTP_200_OK) # Return JSON
- 
-    def post(self):
-        pass
+from knox.models import AuthToken
+from .serializers import UserSerializer, RegisterSerializer
+
+# Register API
+class RegisterAPI(generics.GenericAPIView):
+    serializer_class = RegisterSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response({
+        "user": UserSerializer(user, context=self.get_serializer_context()).data,
+        "token": AuthToken.objects.create(user)[1]
+        })
